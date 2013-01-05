@@ -23,8 +23,8 @@ fi
 _GTIME=`date +%s`
 
 
-#APIKEY="87c1fab65706fd56"
-#SECRET="test123"
+#APIKEY="XXX"
+#SECRET="YYY"
 #GTIME=`date +%s`
 #SERVER="https://api.gogrid.com/api"
 #QVERSION=1.9
@@ -114,6 +114,6 @@ getURL() {
 #   public/private
 
 
-# See rerun gogrid:api --apikey 87c1fab65706fd56 --secret test123 --method '/common/lookup/list?lookup=lookups' |jq '.'
+# See rerun gogrid:api --apikey XXX --secret YYY --method '/common/lookup/list?lookup=lookups' |jq '.'
 # for types of lookups
 #US-West-1
