@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+# To implement this command, edit the "Command implementation" section below. 
+
+# Usage
+# -----
+
+# Comments prefixed with `#/` are managed by stubbs.
+# The `command` and `usage` comments describe the command
+# and show its options.
+# 
+#/ command: gogrid:add-server: "Add a GoGrid server"
+#/ usage: rerun gogrid:add-server  --apikey <The API key used to authenticate to GoGrid>  --secret <>  --server-name <>  --server-image <>  --server-ram <>  --server-description <> [ --public-ip <>] [ --private-ip <>] 
+
+# Load common functions
+# ---------------------
+
+# Load the function library for this module.
+# This loads rerun functions, too.
+. $RERUN_MODULE_DIR/lib/functions.sh add-server || { 
+  echo >&2 "Failed loading function library." ; exit 1 ; 
+}
+
+# Error handling
+# ---------------
+
+# This script is designed to _fail-fast_.
+
+# Trap errors and exit. The call to `rerun_die` will print the
+# the error message and exit with the error command exit status. 
+
+trap 'rerun_die $? "*** command failed: gogrid:add-server. ***"' ERR
+
+# Run [set] `nounset` to treat unset variables as errors. Set [pipefail]
+# so a pipeline return status is the value of the last 
+# (rightmost) command to exit with non-zero status.
+#
+# [set]: http://ss64.com/bash/set.html
+# [pipefail]: http://www.gnu.org/software/bash/manual/html_node/Pipelines.html
+
+set -o nounset -o pipefail
+
+# Command variables
+# -----------------
+
+# This command script can access the following variables
+# declared by `rerun` or by the option parser function.
+
+#/ rerun-variables: RERUN, RERUN_VERSION, RERUN_MODULES, RERUN_MODULE_DIR
+#/ option-variables: APIKEY SECRET SERVER_NAME SERVER_IMAGE SERVER_RAM SERVER_DESCRIPTION PUBLIC_IP PRIVATE_IP
+
+# The `rerun_options_parse` function processes the command line
+# arguments. Each accepted command line flag results in setting 
+# one the corresponding option variables.
+
+rerun_options_parse "$@"
+
+
+# Command implementation
+# ----------------------
+
+
+#required
+#  APIKEY 
+#  SECRET
+#  SERVER_NAME (mycentos62-64)
+#  SERVER_IMAGE (centos6.2_64_base)
+#  SERVER_RAM (1GB)
+#  SERVER_DESCRIPTION
+
+#optional
+#  PUBLIC_IP (unless specified will obtain next available one)
+#  PRIVATE_IP 
+
+
+if [ -z "${PRIVATE_IP}" ]
+then
+   privateIPParam=""
+else
+   privateIPParam="&privateip=${PRIVATE_IP}"
+fi
+
+if [ -z "${PUBLIC_IP}" ]
+then
+   PUBLIC_IP="$(rerun gogrid:get-avail-ip --apikey "${APIKEY}" --secret "${SECRET}" --type Public)"
+fi
+
+if [ -z "${PUBLIC_IP}" ]
+then
+   rerun_die "Unable to obtain a public IP address and no IP address was specified"
+fi
+
+METHOD="/grid/server/add?name=${SERVER_NAME}&image=${SERVER_IMAGE}&server.ram=${SERVER_RAM}&ip=${PUBLIC_IP}&description=${SERVER_DESCRIPTION}${privateIPParam}"
+
+rerun gogrid:api --apikey "${APIKEY}" --secret "${SECRET}" --method "${METHOD}" 
+
+# Done. Exit with last command exit status.
+exit $?
+
