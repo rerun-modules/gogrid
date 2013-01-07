@@ -10,7 +10,7 @@
 # and show its options.
 # 
 #/ command: gogrid:add-server: "Add a GoGrid server"
-#/ usage: rerun gogrid:add-server  --apikey <The API key used to authenticate to GoGrid>  --secret <>  --server-name <>  --server-image <>  --server-ram <>  --server-description <> [ --public-ip <>] [ --private-ip <>] 
+#/ usage: rerun gogrid:add-server  --apikey <>  --secret <>  --server-name <>  --server-image <>  --server-ram <>  --server-description <> [ --public-ip <>] [ --private-ip <>] [ --interval <3>] [ --count <120>] [ --sync <false>] 
 
 # Load common functions
 # ---------------------
@@ -47,7 +47,7 @@ set -o nounset -o pipefail
 # declared by `rerun` or by the option parser function.
 
 #/ rerun-variables: RERUN, RERUN_VERSION, RERUN_MODULES, RERUN_MODULE_DIR
-#/ option-variables: APIKEY SECRET SERVER_NAME SERVER_IMAGE SERVER_RAM SERVER_DESCRIPTION PUBLIC_IP PRIVATE_IP
+#/ option-variables: APIKEY SECRET SERVER_NAME SERVER_IMAGE SERVER_RAM SERVER_DESCRIPTION PUBLIC_IP PRIVATE_IP INTERVAL COUNT SYNC
 
 # The `rerun_options_parse` function processes the command line
 # arguments. Each accepted command line flag results in setting 
@@ -73,6 +73,28 @@ rerun_options_parse "$@"
 #  PRIVATE_IP 
 
 
+#
+# After a server has been added, looks for a server event to attain the state of "On"
+#
+pollForServer() {
+   let count=0
+   while [ 1 ]
+   do
+      state=$(rerun gogrid:get-server --apikey "${APIKEY}" --secret "${SECRET}" --server-name "${SERVER_NAME}"  | jq -r '.list[].state.name' 2>/dev/null)
+      if [ "${state}" = On ]
+      then
+         return 0
+      fi
+      sleep $INTERVAL
+      let count=count+1
+      if [ $count -gt $COUNT ]
+      then
+         return 1
+      fi
+   done
+}
+
+
 if [ -z "${PRIVATE_IP}" ]
 then
    privateIPParam=""
@@ -82,7 +104,7 @@ fi
 
 if [ -z "${PUBLIC_IP}" ]
 then
-   PUBLIC_IP="$(rerun gogrid:get-avail-ip --apikey "${APIKEY}" --secret "${SECRET}" --type Public)"
+   PUBLIC_IP="$(rerun gogrid:get-avail-ip --apikey "${APIKEY}" --secret "${SECRET}" --ip-type Public)"
 fi
 
 if [ -z "${PUBLIC_IP}" ]
@@ -94,6 +116,14 @@ METHOD="/grid/server/add?name=${SERVER_NAME}&image=${SERVER_IMAGE}&server.ram=${
 
 rerun gogrid:api --apikey "${APIKEY}" --secret "${SECRET}" --method "${METHOD}" 
 
+if [ "${SYNC}" = true ]
+then
+   # must be in "On" state to succeed
+   if ! pollForServer
+   then
+      rerun_die "timeout $COUNT reached polling for ${SERVER_NAME}" 
+   fi
+fi
+
 # Done. Exit with last command exit status.
 exit $?
-

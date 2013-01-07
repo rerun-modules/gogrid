@@ -3,4 +3,4 @@
 # Sat Jan  5 14:29:26 PST 2013
 NAME=add-server
 DESCRIPTION="Add a GoGrid server"
-OPTIONS="apikey secret server-name server-image server-ram server-description public-ip private-ip"
+OPTIONS="apikey secret server-name server-image server-ram server-description public-ip private-ip interval count sync"
